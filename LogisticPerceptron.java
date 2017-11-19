@@ -60,26 +60,54 @@ public class LogisticPerceptron implements weka.classifiers.Classifier{
         weights = new double[numAttributes];
 
         // Run as many epochs as indicated by user
-        for(int currentEpoch = 0; currentEpoch < this.numEpochs; currentEpoch++){
+        for(int epochCounter = 0; epochCounter < this.numEpochs; epochCounter++){
 
-            System.out.print("Epoch " + currentEpoch + ": ");
+            System.out.print("Epoch " + epochCounter + ": ");
             
-            // Go through each attribute in current instance
-            for(int currentAtr = 0; currentAtr < numAttributes; currentAtr++){
-                // TODO
+            // Go through each attribute in current epoch
+            for(int atrCounter = 0; atrCounter < numAttributes; atrCounter++){
+
+                // Current instance/epoch
+                Instance currentEpoch = data.instance(epochCounter);
+
+                // Number of attributes in epoch
+                int instanceAtrCount = currentEpoch.numAttributes();
+                
+                // Perform summation of all attribute * weight values
+                double sum = 0.0;
+                for(int currentAtr = 0; currentAtr < instanceAtrCount; currentAtr++){
+                    sum += currentEpoch.attribute(currentAtr).weight() * currentEpoch.value(currentAtr);
+                }
+
+                // Account for bias weight
+                sum += currentEpoch.attribute(instanceAtrCount - 1).weight() * this.bias;
+
+                // This is the result of the Perceptron. If output does not match expected output, weights will be updated.
+                int output = sign(sum);
+
+                // Expected output is last value of each attribute; map +1 to distribution for class 0, and -1 for class 1.
+                int expectedOutput = (int)((currentEpoch.value(currentEpoch.attribute(instanceAtrCount - 1)) == 0) ? 1 : -1);
+
+                if(output != expectedOutput){
+                    System.out.println("Must train");
+                }else{
+                    System.out.print("1");
+                }
             }
+            // Move on to next epoch
+			System.out.println();
         }
         
     }
 
     // Predicts +1 or -1 value for the classification of a sample instance.
-    public int predict(Instance inst){
+    public int predict(Instance instance){
         // Holds all attribute values
-        double[] inputs = new double[inst.numAttributes() - 1];
+        double[] inputs = new double[instance.numAttributes() - 1];
 
         // Fill input vector with corresponding attribute values
         for(int i = 0; i < inputs.length; i++){
-            inputs[i] = data.value(i);
+            inputs[i] = instance.value(i);
         }
 
         double sum = 0;
@@ -89,14 +117,16 @@ public class LogisticPerceptron implements weka.classifiers.Classifier{
         }
 
         // Account for bias by adding it's corresponding weight to the current sum
-        sum += data.attribute(inst.numAttributes() - 1).getWeight() * this.bias;
+        sum += instance.attribute(instance.numAttributes() - 1).weight() * this.bias;
 
         int output = sign(sum);
         return output; 
     }
 
     // Empty concrete definition of getCapabilities() as required by the implementation
-    public void getCapabilities(){};
+    public Capabilities getCapabilities(){
+        return null;
+    };
 
 
     // Empty concrete definition of classifyInstance() as required by the implementation
@@ -108,8 +138,9 @@ public class LogisticPerceptron implements weka.classifiers.Classifier{
         String output = "";
         return output;
     }
-    public double[] distributionForInstance(Instance Instance){
-        double[] result = new double[d];
+
+    public double[] distributionForInstance(Instance instance){
+        double[] result = new double[instance.numAttributes()];
         if(predict(instance) == 1){
             result[0] = 1;
             result[1] = 0;
