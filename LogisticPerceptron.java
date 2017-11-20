@@ -4,6 +4,11 @@ import java.text.DecimalFormat;
 import weka.classifiers.Classifier;
 import weka.core.*;
 
+/** University of Central Florida
+ *CAP4630 Artificial Intelligence - Fall 2017
+ *Perceptron Classifier by Julian Quitian & Ley Nezifort
+ */
+
 public class LogisticPerceptron implements weka.classifiers.Classifier{
     // Input file name
     private String fileName;
@@ -29,8 +34,8 @@ public class LogisticPerceptron implements weka.classifiers.Classifier{
     public LogisticPerceptron(String[] options) throws Exception{
         // Print the header for the output
 		System.out.println("\nUniversity of Central Florida ");
-		System.out.println("CAP4630 Artificial Intelligence - Fall 2016");
-        System.out.println("Perceptron Classifier by Julian Quitian \n");
+		System.out.println("CAP4630 Artificial Intelligence - Fall 2017");
+        System.out.println("Perceptron Classifier by Julian Quitian & Ley Nezifort \n");
         
         // Process Arguments
         this.fileName = options[0];
@@ -66,6 +71,13 @@ public class LogisticPerceptron implements weka.classifiers.Classifier{
         // Set weight vector size. Note: All initialized to 0.0, as required
         weights = new double[numAttributes];
 
+        // Initializes the weights of all of the attributes in the first instance to 0.0
+		for(int i = 0; i < data.firstInstance().numAttributes(); i++)
+		{
+            data.firstInstance().attribute(i).setWeight(0.0);
+            weights[i] = 0.0;
+        }
+
         // Run as many epochs as indicated by user
         for(int epochCounter = 0; epochCounter < this.numEpochs; epochCounter++){
 
@@ -73,52 +85,127 @@ public class LogisticPerceptron implements weka.classifiers.Classifier{
             
             // Go through each sample in current data sample
             for(int sampleCounter = 0; sampleCounter < dataSize; sampleCounter++){
+                // if(epochCounter == 2){
+                //     if(sampleCounter == 0){
+                //         System.out.println();
+                //         System.out.print("Weights: ");
+                //         for(int i = 0; i < weights.length; i++){
+                //             System.out.print(weights[i] + " ");
+                //         }
+                //         System.out.println();
+                //         System.exit(1);
+                //     }
+                // }
 
                 // Current instance
                 Instance currentInstance = data.instance(sampleCounter);
 
                 // Perform summation of all attribute * weight values
                 double sum = 0.0;
-                for(int currentAtr = 0; currentAtr < numAttributes; currentAtr++){
-                    sum += currentInstance.attribute(currentAtr).weight() * currentInstance.value(currentAtr);
+                for(int currentAtr = 0; currentAtr < numAttributes - 1; currentAtr++){
+                    // sum += currentInstance.attribute(currentAtr).weight() * currentInstance.value(currentAtr);
+                    sum += weights[currentAtr] * currentInstance.value(currentAtr);
                 }
-
-                // Account for bias weight
-                sum += currentInstance.attribute(numAttributes - 1).weight() * this.bias;
-
-                // This is the result of the Perceptron. If output does not match expected output, weights will be updated.                
-                int output = predict(currentInstance);
                 
-                // Expected output is last value of each attribute; map +1 to distribution for class 0, and -1 for class 1.
+                // Account for bias weight
+                sum += weights[weights.length - 1];
+
+                // if(epochCounter == 2){
+                //     if(sampleCounter == 0){
+                //         for(int i = 0; i < weights.length; i++){
+                //             System.out.println();
+                //             System.out.print(weights[i] + " ");
+                //         }
+                //         System.out.println();
+                //         System.out.println(sum);
+                //         System.exit(1);
+                //     }
+                // }
+
+                // This is the result of the Perceptron. If output does not match expected output, weights will be updated.   
+                //int output = predict(currentInstance);             
+                double temp = logisticFunction(sum);
+                // if(epochCounter == 2){
+                //     if(sampleCounter == 0){
+                //         System.out.println();
+                //         System.out.println(temp);
+                //         System.exit(1);
+                //     }
+                // }
+
+                // Scale
+                temp = 2 * (temp) - 1;
+                
+                // if(epochCounter == 2){
+                //     if(sampleCounter == 0){
+                //         System.out.println();
+                //         System.out.println(temp);
+                //         System.exit(1);
+                //     }
+                // }
+
+                int output;
+                if(temp >= 0){
+                    output = 1;
+                }else{
+                    output = -1;
+                }
+                
+                // Expected output is last value of each attribute; map +1 to distribution for class a, and -1 for class b.
                 int expectedOutput = (int)((currentInstance.value(currentInstance.attribute(numAttributes - 1)) == 0) ? 1 : -1);
-                    
+
+                // if(sampleCounter == 1){
+                //     System.out.println("Expected: " + expectedOutput + "\t Actual: " + output);
+                //     System.exit(1);
+                // }
+
                 if(output != expectedOutput){
                     System.out.print("0");
 					
 					// Increase the number of times the weight has been updated by 1
 					this.updateCount++;
-					
-					// Case where output is positive and expectedOutput is negative
-					if(output == 1 && expectedOutput == -1){
-						// Go through each attribute and iteratively set the weight according to the weights at m, 
-						// the attribute at m, and the learning rate 
-						for(int m = 0; m < numAttributes-1; m++){
-							data.attribute(m).setWeight((data.attribute(m).weight()) - 2*this.learningRate*currentInstance.value(m));
-						}
-						// Adjust the weight of the last attribute after iterating through all of the other weights.
-						data.attribute(numAttributes - 1).setWeight((data.attribute(numAttributes - 1).weight()) - 2*this.learningRate*1.0);
-					}
-					// Case where output is negative and expectedOutput is positive
-					else if(output == -1 && expectedOutput == 1){
-						// Go through each attribute and iteratively set the weight according to the weights at m, 
-						// the attribute at m, and the learning rate 
-						for(int m = 0; m < numAttributes - 1; m++)
-						{
-							data.attribute(m).setWeight((data.attribute(m).weight()) + 2*this.learningRate*currentInstance.value(m));
-						}
-						// Adjust the weight of the last attribute after iterating through all of the other weights.
-                        data.attribute(numAttributes - 1).setWeight((data.attribute(numAttributes - 1).weight()) + 2*this.learningRate*1.0);
+
+                    double exponential = Math.exp(-1.0 * this.squashingParameter * sum);
+                    // Calculate derivative
+                    double fPrimeNet = (this.squashingParameter * exponential) / Math.pow(1 + exponential, 2);
+
+                    // Calculate error and scale from -1 to 1
+                    double error = expectedOutput - output;
+                    error = 2.0 * (error + 2.0);
+                    error = (error / 4.0) - 1.0;
+
+                    for(int m = 0; m < numAttributes; m++){
+
+                        double deltaW = this.learningRate * error * fPrimeNet * currentInstance.value(m);
+
+                        // if(sampleCounter == 2){
+                        //     if(m == 1){
+                        //         System.out.println();
+                        //         System.out.println(this.learningRate);
+                        //         System.out.println(expectedOutput);
+                        //         System.out.println(output);
+                        //         System.out.println(currentInstance.value(m));
+                        //         System.out.println(fPrimeNet);
+                        //         System.out.println(deltaW);
+                        //         System.exit(1);
+                        //     }
+                        // }
+
+                        data.attribute(m).setWeight(data.attribute(m).weight() + deltaW);
+                        weights[m] = weights[m] + deltaW;
+
+                        // if(sampleCounter == 1){
+                        //     if(m == 1){
+                        //         System.out.println();
+                        //         System.out.println(data.attribute(m).weight());
+                        //         System.out.println(weights[m]);
+                        //         System.exit(1);
+                        //     }
+                        // }
                     }
+
+                    weights[weights.length - 1] += this.learningRate * error * fPrimeNet;
+
                 }else{
                     System.out.print("1");
                 }
@@ -127,12 +214,13 @@ public class LogisticPerceptron implements weka.classifiers.Classifier{
 			System.out.println();
         }
         // Store all of the weights in data back in the weights[] array
-		for(int i = 0; i < numAttributes; i++){
+		for(int i = 0; i < numAttributes - 1; i++){
 			this.weights[i] = data.attribute(i).weight();
         }
     }
 
     // Predicts +1 or -1 value for the classification of a sample instance.
+    // public int predict(Instance instance){
     public int predict(Instance instance){
         // Holds all attribute values
         double[] attributes = new double[instance.numAttributes() - 1];
@@ -151,8 +239,11 @@ public class LogisticPerceptron implements weka.classifiers.Classifier{
         // Account for bias by adding it's corresponding weight to the current sum
         sum += instance.attribute(instance.numAttributes() - 1).weight() * this.bias;
 
-        int output = thresholdFunction(sum);
-        return output;
+        // int output = thresholdFunction(sum);
+        // return output;
+
+        double fnet = 1.0 / (1 + Math.pow(Math.E, (-1.0) * this.squashingParameter * sum));
+        return (int)fnet;
     }
 
     // Empty concrete definition of getCapabilities() as required by the implementation
@@ -177,7 +268,7 @@ public class LogisticPerceptron implements weka.classifiers.Classifier{
 		// Creates the string containing the final weights
 		for(int i = 0; i < this.weights.length; i++)
 		{
-			finalWeights += (df.format(this.weights[i]) + "\n");
+            finalWeights += (df.format(this.weights[i]) + "\n");
 		}
 	
 		// Prints out the required data
@@ -211,5 +302,10 @@ public class LogisticPerceptron implements weka.classifiers.Classifier{
             return -1;
 
         //return (int)(1.0 / (1.0 + Math.pow(Math.E, (-1) * this.squashingParameter * n)));
+    }
+
+    public double logisticFunction(double sum){
+        double fnet = 1.0 / (1 + Math.pow(Math.E, (-1.0) * this.squashingParameter * sum));
+        return fnet;
     }
 }
