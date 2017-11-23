@@ -124,37 +124,18 @@ public class LogisticPerceptron implements weka.classifiers.Classifier{
                     // Calculate derivative
                     double fPrimeNet = (this.squashingParameter * exponential) / Math.pow(1 + exponential, 2);
 
-                    // Calculate error and scale from -1 to 1
+                    // Calculate error
                     double error = expectedOutput - output;
 
                     for(int m = 0; m < numAttributes - 1; m++){
 
+                        // Mathematical formula for update
                         double deltaW = this.learningRate * error * fPrimeNet * currentInstance.value(m);
 
-                        // if(sampleCounter == 2){
-                        //     if(m == 1){
-                        //         System.out.println();
-                        //         System.out.println(this.learningRate);
-                        //         System.out.println(expectedOutput);
-                        //         System.out.println(output);
-                        //         System.out.println(currentInstance.value(m));
-                        //         System.out.println(fPrimeNet);
-                        //         System.out.println(deltaW);
-                        //         System.exit(1);
-                        //     }
-                        // }
-
+                        // Update weights
                         weights[m] = weights[m] + deltaW;
                         data.attribute(m).setWeight(weights[m]);
-                        
-                        // if(sampleCounter == 1){
-                        //     if(m == 1){
-                        //         System.out.println();
-                        //         System.out.println(data.attribute(m).weight());
-                        //         System.out.println(weights[m]);
-                        //         System.exit(1);
-                        //     }
-                        // }
+
                     }
 
                     // Update bias weight
@@ -166,10 +147,6 @@ public class LogisticPerceptron implements weka.classifiers.Classifier{
             }
             // Move on to next epoch
 			System.out.println();
-        }
-        // Store all of the weights in data back in the weights[] array
-		for(int i = 0; i < numAttributes - 1; i++){
-			this.weights[i] = data.attribute(i).weight();
         }
     }
 
